@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wall Spike Climb</title>
     <style>
-        body {
+                body {
             margin: 0;
             background: #222;
             display: flex;
@@ -16,7 +16,9 @@
             color: white;
             font-family: sans-serif;
             overflow: hidden;
+            touch-action: manipulation; /* ← ここを追加！スマホのダブルタップ拡大を防ぎます */
         }
+
         canvas {
             background: #f4f4f8;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
@@ -42,9 +44,9 @@
             x: 180,
             y: 450,
             radius: 14,
-            vx: 4.5,       // 横の移動速度
+            vx: 6.0,       // 横の移動速度
             vy: 0,         // 縦の移動速度
-            gravity: 0.45, // 重力
+            gravity: 0.60, // 重力
             jumpPower: -9.5 // タップ時の上昇力
         };
 
