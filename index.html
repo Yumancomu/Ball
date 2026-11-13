@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wall Spike Climb</title>
     <style>
-                body {
+        body {
             margin: 0;
             background: #222;
             display: flex;
@@ -16,9 +16,8 @@
             color: white;
             font-family: sans-serif;
             overflow: hidden;
-            touch-action: manipulation; /* ← ここを追加！スマホのダブルタップ拡大を防ぎます */
+            touch-action: manipulation; /* スマホのダブルタップ拡大を防ぐ */
         }
-
         canvas {
             background: #f4f4f8;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
@@ -44,28 +43,38 @@
             x: 180,
             y: 450,
             radius: 14,
-            vx: 6.0,       // 横の移動速度
-            vy: 0,         // 縦の移動速度
-            gravity: 0.60, // 重力
-            jumpPower: -9.5 // タップ時の上昇力
+            baseVx: 4.5,   // 基本の横移動速度
+            vx: 4.5,       
+            vy: 0,         
+            gravity: 0.45, 
+            jumpPower: -9.5 
         };
 
         // 壁とトゲの設定
         const wallWidth = 15;
-        let spikes = []; // { side: 'left'|'right', y: number, size: number }
-        let nextSpikeY = 300; // 次のトゲを生成する高さ
+        let spikes = []; 
+        let nextSpikeY = 350; 
+
+        // ボールのカラーパレット（スコア1000ごとに順番に変化）
+        const ballColors = [
+            '#007aff', // 0〜999: 青
+            '#ff9500', // 1000〜1999: オレンジ
+            '#34c759', // 2000〜2999: 緑
+            '#af52de', // 3000〜3999: 紫
+            '#ff2d55', // 4000〜4999: ピンク
+            '#ffcc00'  // 5000〜: 黄色
+        ];
 
         // 初期化関数
         function resetGame() {
             ball.x = canvas.width / 2;
             ball.y = 450;
-            ball.vx = 4.5;
+            ball.vx = ball.baseVx;
             ball.vy = 0;
             score = 0;
             spikes = [];
             nextSpikeY = 350;
 
-            // 初期のトゲをいくつか配置
             for (let i = 0; i < 6; i++) {
                 spawnSpike();
             }
@@ -77,10 +86,9 @@
             spikes.push({
                 side: side,
                 y: nextSpikeY,
-                height: 36, // トゲの縦幅
-                width: 18   // トゲの突き出し長さ
+                height: 36, 
+                width: 18   
             });
-            // 上に行くほどトゲの間隔を少しずつ狭くする（難易度アップ）
             const minGap = Math.max(90, 160 - score * 1.5);
             nextSpikeY -= minGap + Math.random() * 60;
         }
@@ -109,18 +117,23 @@
         function update() {
             if (gameState !== 'PLAYING') return;
 
-            // ボールの移動
+            // 【100点ごとにスピードアップ】
+            // スコアが100増えるごとに、横移動速度（vx）が少しずつ速くなります（最大で元の2倍まで）
+            let speedMultiplier = 1 + Math.floor(score / 100) * 0.08;
+            let currentVx = ball.baseVx * speedMultiplier;
+
+            // ボールの移動（現在の向きを維持して速度を反映）
             ball.vy += ball.gravity;
-            ball.x += ball.vx;
+            ball.x += (ball.vx > 0 ? 1 : -1) * currentVx;
             ball.y += ball.vy;
 
             // 左右の壁での反射
             if (ball.x - ball.radius <= wallWidth) {
                 ball.x = wallWidth + ball.radius;
-                ball.vx = Math.abs(ball.vx); // 右へ反射
+                ball.vx = Math.abs(ball.vx); 
             } else if (ball.x + ball.radius >= canvas.width - wallWidth) {
                 ball.x = canvas.width - wallWidth - ball.radius;
-                ball.vx = -Math.abs(ball.vx); // 左へ反射
+                ball.vx = -Math.abs(ball.vx); 
             }
 
             // 画面の上昇（カメラ追従）
@@ -130,28 +143,24 @@
                 ball.y = cameraThreshold;
                 nextSpikeY += diff;
 
-                // トゲを下にずらす
                 spikes.forEach(spike => {
                     spike.y += diff;
                 });
 
-                // 上昇した分だけスコア加算
                 score += diff * 0.05;
             }
 
-            // 画面下に消えたトゲを削除し、新しいトゲを上に追加
             if (spikes.length > 0 && spikes[0].y > canvas.height + 50) {
                 spikes.shift();
                 spawnSpike();
             }
 
-            // 画面の下端に落ちたらゲームオーバー
             if (ball.y - ball.radius > canvas.height) {
                 triggerGameOver();
             }
 
-            // トゲとの当たり判定（少しだけ判定を甘くして遊びやすくしています）
-            const hitMargin = 4;
+            // 当たり判定（当たり判定を少し甘くする設定: hitMargin = 6）
+            const hitMargin = 6;
             for (let spike of spikes) {
                 const inY = (ball.y + ball.radius - hitMargin > spike.y) &&
                             (ball.y - ball.radius + hitMargin < spike.y + spike.height);
@@ -179,7 +188,7 @@
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 背景のスコア表示（薄く大きく表示）
+            // スコアの表示（背景に大きく）
             ctx.fillStyle = '#e0e0e8';
             ctx.font = 'bold 100px sans-serif';
             ctx.textAlign = 'center';
@@ -208,13 +217,14 @@
                 ctx.fill();
             });
 
-            // ボールの描画
-            ctx.fillStyle = '#007aff';
+            // 【スコア1000ごとに色が変わるボールの描画】
+            let colorIndex = Math.floor(score / 1000) % ballColors.length;
+            ctx.fillStyle = ballColors[colorIndex];
             ctx.beginPath();
             ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
             ctx.fill();
 
-            // スタート画面・ゲームオーバー画面のオーバーレイ
+            // オーバーレイ画面
             if (gameState === 'START' || gameState === 'GAMEOVER') {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -227,7 +237,7 @@
                 if (gameState === 'GAMEOVER') {
                     ctx.fillText('SCORE: ' + Math.floor(score) + '  |  BEST: ' + highScore, canvas.width / 2, canvas.height / 2 + 15);
                 }
-                ctx.fillText('クリック / タップ / スペースでジャンプ', canvas.width / 2, canvas.height / 2 + 55);
+                ctx.fillText('タップ / スペースでジャンプ', canvas.width / 2, canvas.height / 2 + 55);
             }
         }
 
@@ -237,7 +247,6 @@
             requestAnimationFrame(loop);
         }
 
-        // 初期描画のために一度リセットを呼ぶ
         resetGame();
         loop();
     </script>
